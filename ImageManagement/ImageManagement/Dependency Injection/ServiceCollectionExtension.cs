@@ -5,6 +5,7 @@ using ImageManagement.Services.Dto;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 
 namespace ImageManagement.Dependency_injection
@@ -17,15 +18,18 @@ namespace ImageManagement.Dependency_injection
 
             services.AddTransient<RemoveImageRichModel>();
             services.AddTransient<UploadImageModel>();
-            //services.AddTransient<ImageConfig>();
-            services.Configure<ImageConfig>(ImageConfig.Ftp, configuration.GetSection(ImageConfig.ImageSettingsSection));
+            services.Configure<ImageSize>(ImageSize.Small,
+                configuration.GetSection($"{ImageSize.ImageSizesSection}:{ImageSize.Small}"));
+            services.Configure<ImageConfig>(configuration.GetSection(ImageConfig.ImageSettingsSection));
+            services.Configure<FtpConfig>(configuration.GetSection(FtpConfig.ImageFtpSection));
 
             services.AddTransient<IImageService>(provider =>
             {
                 var logger = provider.GetService<ILogger<LogService>>();
-                var config = provider.GetService<ImageConfig>();
+                var ftpConfig = provider.GetService<IOptionsSnapshot<FtpConfig>>();
+                var imageSize = provider.GetService<IOptionsSnapshot<ImageSize>>();
 
-                IImageService imageService = new ImageService(config);
+                IImageService imageService = new ImageService(imageSize, ftpConfig);
                 return new LogService(logger, imageService);
             });
 
@@ -36,7 +40,7 @@ namespace ImageManagement.Dependency_injection
                     Version = "v2",
                     Title = "Image Management API",
                     Contact = new OpenApiContact
-                    {
+                    { 
                         Name = "Farzane haddad",
                         Email = "fbadr88@gmail.com"
                     }

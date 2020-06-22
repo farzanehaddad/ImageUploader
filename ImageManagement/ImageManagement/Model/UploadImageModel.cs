@@ -3,6 +3,7 @@ using System.IO;
 using ImageManagement.Configuration;
 using ImageManagement.Extensions;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 
 namespace ImageManagement.Model
 {
@@ -10,9 +11,9 @@ namespace ImageManagement.Model
     {
         private readonly ImageConfig _imageConfig;
 
-        public UploadImageModel(ImageConfig imageConfig)
+        public UploadImageModel(IOptionsSnapshot<ImageConfig> imageConfig)
         {
-            _imageConfig = imageConfig;
+            _imageConfig = imageConfig.Value;
         }
 
         public IFormFile File { get; set; }

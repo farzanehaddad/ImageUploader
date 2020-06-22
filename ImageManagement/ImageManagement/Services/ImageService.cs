@@ -8,6 +8,7 @@ using ImageMagick;
 using ImageManagement.Model;
 using System.Net;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 
 namespace ImageManagement.Services
 {
@@ -20,11 +21,14 @@ namespace ImageManagement.Services
 
     public class ImageService : BaseModel, IImageService
     {
-        private readonly ImageConfig _config;
+        private readonly FtpConfig _ftpConfig;
+        private readonly ImageSize _smallImage;
 
-        public ImageService(ImageConfig config)
+        public ImageService(IOptionsSnapshot<ImageSize> imageSizeAccessor,
+                            IOptionsSnapshot<FtpConfig> ftpConfig)
         {
-            _config = config;
+            _smallImage = imageSizeAccessor.Get(ImageSize.Small);
+            _ftpConfig = ftpConfig.Value;
         }
 
         public UploadImageResultModel FTPImage(UploadImageModel input)
@@ -34,11 +38,11 @@ namespace ImageManagement.Services
             var buff = new byte[buffLength];
             int contentLen;
             var fileInf = new FileInfo(input.FilePathOriginal);
-            var uri = $"ftp://{_config.FtpIPAddress}/{fileInf.Name}";
+            var uri = $"ftp://{_ftpConfig.IPAddress}/{fileInf.Name}";
 
             FtpWebRequest reqFTP;
             reqFTP = (FtpWebRequest)FtpWebRequest.Create(new Uri(uri));
-            reqFTP.Credentials = new NetworkCredential(_config.FtpUsername, _config.FtpPassword);
+            reqFTP.Credentials = new NetworkCredential(_ftpConfig.Username, _ftpConfig.Password);
             reqFTP.KeepAlive = false;
             reqFTP.Method = WebRequestMethods.Ftp.UploadFile;
             reqFTP.UseBinary = true;
@@ -79,7 +83,7 @@ namespace ImageManagement.Services
             imagesName.Add(input.FilePathCompressed);
 
             var smallImage = ResizeImage(input.FilePathOriginal,
-                Int32.Parse(_config.SmallSizeWidth), Int32.Parse(_config.SmallSizeHeight));
+                Int32.Parse(_smallImage.Width), Int32.Parse(_smallImage.Height));
             SaveImage(smallImage, input.FilePathSmall);
             imagesName.Add(input.FilePathSmall);
 
